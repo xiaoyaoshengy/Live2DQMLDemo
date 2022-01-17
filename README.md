@@ -3,7 +3,7 @@
 ---
 * 本工程参考使用和修改Cubism公司开放的C++版本的[Sample源码](https://github.com/Live2D/CubismNativeSamples)，以及Qt官方开放的[OpenGL Under QML](https://doc.qt.io/qt-5.15/qtquick-scenegraph-openglunderqml-example.html)项目，实现使用```Qt Quick```显示模型及动画的功能。
 * 本工程将与Live2D模型显示相关的功能封装为自定义的QML组件，即继承自```QQuickItem```类的```LAppLive2DView```类，同时搭配```SequentialAnimation```组件实现动画功能，具体参考```main.qml```文件。自定义QML组件的名称为```Live2DView```，其属性```resourcePath```用于设置Live2D模型文件的路径。
-* Live2D模型文件的放置请参考Cubism公司在Sample工程中的放置方式，并将```.model3.json```文件的绝对路径作为```resourcePath```属性的值。
+* Live2D模型文件的放置请参考Cubism公司在Sample工程中的放置方式，并将```.model3.json```文件的绝对路径作为```resourcePath```属性的值，注意使用```"/"```分隔。
 * 本工程暂未实现点击同步播放音频的功能。
 ### 工程配置
 ---
