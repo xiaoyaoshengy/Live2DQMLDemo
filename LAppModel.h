@@ -13,14 +13,20 @@
 #include "CubismSDK/Framework/Type/csmRectF.hpp"
 
 #include "LAppWavFileHandler.h"
+#include <QObject>
+#include <QAudio>
+#include <QFile>
+
+class QAudioOutput;
 
  /**
   * @brief ユーザーが実際に使用するモデルの実装クラス<br>
   *         モデル生成、機能コンポーネント生成、更新処理とレンダリングの呼び出しを行う。
   *
   */
-class LAppModel : public Csm::CubismUserModel
+class LAppModel : public QObject, public Csm::CubismUserModel
 {
+    Q_OBJECT
 public:
     /**
      * @brief コンストラクタ
@@ -111,6 +117,9 @@ protected:
      */
     void DoDraw();
 
+private slots:
+    void handleVoiceStateChanged(QAudio::State newState);
+
 private:
     /**
      * @brief model3.jsonからモデルを生成する。<br>
@@ -168,6 +177,9 @@ private:
     const Csm::CubismId* _idParamEyeBallY; ///< パラメータID: ParamEyeBallXY
 
     LAppWavFileHandler _wavFileHandler; ///< wavファイルハンドラ
+
+    QAudioOutput* _audioOutput;
+    QFile _audioFile;
 };
 
 

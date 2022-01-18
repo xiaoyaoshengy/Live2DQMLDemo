@@ -17,6 +17,6 @@ Window {
             loops: Animation.Infinite;
             running: true;
         }
-        resourcePath: "E:/xiaoyaosheny/live2d/live2d-model-master/aidang_2/aidang_2.model3.json"
+        resourcePath: "E:/xiaoyaosheny/vs/Qt/Live2DQMLDemo/x64/Debug/Resources/aidang_2/aidang_2.model3.json"
     }
 }

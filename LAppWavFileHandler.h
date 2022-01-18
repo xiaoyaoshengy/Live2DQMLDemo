@@ -9,7 +9,7 @@ public:
 	LAppWavFileHandler();
 	~LAppWavFileHandler();
 	Csm::csmBool Update(Csm::csmFloat32 deltaTimeSeconds);
-	void Start(const Csm::csmString& filePath);
+	bool Start(const Csm::csmString& filePath);
 	Csm::csmFloat32 GetRms() const;
 
 private:

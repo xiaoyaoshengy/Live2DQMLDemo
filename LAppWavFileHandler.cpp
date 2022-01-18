@@ -53,17 +53,18 @@ Csm::csmBool LAppWavFileHandler::Update(Csm::csmFloat32 deltaTimeSeconds)
 	return true;
 }
 
-void LAppWavFileHandler::Start(const Csm::csmString& filePath)
+bool LAppWavFileHandler::Start(const Csm::csmString& filePath)
 {
 	if (!LoadWavFile(filePath))
 	{
-		return;
+		return false;
 	}
 
 	_sampleOffset = 0;
 	_userTimeSeconds = 0.0f;
 
 	_lastRms = 0.0f;
+	return true;
 }
 
 Csm::csmFloat32 LAppWavFileHandler::GetRms() const

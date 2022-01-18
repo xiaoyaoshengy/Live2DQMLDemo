@@ -18,6 +18,8 @@
 #include "LAppDefine.h"
 #include "LAppPal.h"
 #include "CubismSDK/Framework/Rendering/OpenGL/CubismRenderer_OpenGLES2.hpp"
+#include <QAudioOutput>
+#include <QAudioDeviceInfo>
 
 using namespace Live2D::Cubism::Framework;
 using namespace Live2D::Cubism::Framework::DefaultParameterId;
@@ -47,6 +49,7 @@ LAppModel::LAppModel()
     : CubismUserModel()
     , _modelSetting(NULL)
     , _userTimeSeconds(0.0f)
+    , _audioOutput(nullptr)
 {
     if (DebugLogEnable)
     {
@@ -506,7 +509,26 @@ CubismMotionQueueEntryHandle LAppModel::StartMotion(const csmChar* group, csmInt
     {
         csmString path = voice;
         path = _modelHomeDir + path;
-        _wavFileHandler.Start(path);
+        if (_wavFileHandler.Start(path))
+        {
+            if (_audioFile.isOpen())
+                _audioFile.close();
+            _audioFile.setFileName(QString::fromLocal8Bit(path.GetRawString()));
+            if (!_audioFile.open(QIODevice::ReadOnly))
+            {
+                LAppPal::PrintLog("sound file open error: %s", path.GetRawString());
+            }
+            else
+            {
+                if (_audioOutput == nullptr)
+                {
+                    _audioOutput = new QAudioOutput(QAudioDeviceInfo::defaultOutputDevice().preferredFormat(), this);
+                    connect(_audioOutput, &QAudioOutput::stateChanged, this, &LAppModel::handleVoiceStateChanged);
+                }
+                else _audioOutput->stop();
+                _audioOutput->start(&_audioFile);
+            }
+        }
     }
 
     if (_debugMode)
@@ -600,4 +622,42 @@ void LAppModel::SetRandomExpression()
 void LAppModel::MotionEventFired(const csmString& eventValue)
 {
     CubismLogInfo("%s is fired on LAppModel!!", eventValue.GetRawString());
+}
+
+void LAppModel::handleVoiceStateChanged(QAudio::State newState)
+{
+    switch (newState)
+    {
+    case QAudio::IdleState:
+        _audioOutput->stop();
+        _audioFile.close();
+        delete _audioOutput;
+        _audioOutput = nullptr;
+        break;
+    case QAudio::StoppedState:
+        if (_audioOutput)
+        {
+            if (_audioOutput->error() != QAudio::NoError)
+            {
+                switch (_audioOutput->error())
+                {
+                case QAudio::OpenError:
+                    LAppPal::PrintLog("An error occurred opening the audio device.");
+                    break;
+                case QAudio::IOError:
+                    LAppPal::PrintLog("An error occurred during read/write of audio device.");
+                    break;
+                case QAudio::UnderrunError:
+                    LAppPal::PrintLog("Audio data is not being fed to the audio device at a fast enough rate.");
+                    break;
+                case QAudio::FatalError:
+                    LAppPal::PrintLog("A non-recoverable error has occerred, the audio device is not usable at this time.");
+                    break;
+                }
+            }
+            delete _audioOutput;
+            _audioOutput = nullptr;
+        }        
+        break;
+    }
 }
