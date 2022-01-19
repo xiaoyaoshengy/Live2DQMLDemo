@@ -35,6 +35,7 @@ LAppLive2DView::LAppLive2DView(QQuickItem* parent)
 	: QQuickItem(parent)
 	, _t(0)
 	, _capture(false)
+	, _modelUpdated(false)
 	, _renderer(nullptr)
 	, _cubismOption()
 	, _textureManager(nullptr)
@@ -62,7 +63,6 @@ void LAppLive2DView::handleWindowChanged(QQuickWindow* win)
 		connect(win, &QQuickWindow::sceneGraphInitialized, this, &LAppLive2DView::setupTextures, Qt::DirectConnection);
 		connect(win, &QQuickWindow::beforeSynchronizing, this, &LAppLive2DView::sync, Qt::DirectConnection);
 		connect(win, &QQuickWindow::sceneGraphInvalidated, this, &LAppLive2DView::cleanup, Qt::DirectConnection);
-		win->setColor(Qt::black);
 	}
 }
 
@@ -77,6 +77,10 @@ void LAppLive2DView::sync()
 	_renderer->setWindow(window());
 	_renderer->setViewMatrix(_viewMatrix);
 	_renderer->setModel(_model);
+	_renderer->setModelUpdated(_modelUpdated);
+	_modelUpdated = false;
+	_renderer->setTextureManager(_textureManager);
+	_renderer->setResourcePath(_resourcePath);
 }
 
 LAppLive2DView::~LAppLive2DView()
@@ -100,6 +104,8 @@ void LAppLive2DView::setT(qreal t)
 
 void LAppLive2DView::setResourcePath(QString path)
 {
+	if (path.startsWith(QStringLiteral("file:///")))
+		path = path.section(QStringLiteral("file:///"), -1);
 	if (path == _resourcePath)
 		return;
 	if (path.isEmpty() || path.isNull())
@@ -107,16 +113,102 @@ void LAppLive2DView::setResourcePath(QString path)
 	if (path.endsWith(".model3.json") == false)
 		return;
 
+	_model->ReleaseAssets();
 	QStringList stringList = path.split(QString("/"));
 	int listLength = stringList.length();
 	QString dir = path.section(QString("/"), 0, listLength - 2) + QString("/");
 	QString fileName = stringList[listLength - 1].section(QString("."), 0, 0) + QString(".model3.json");
 	if (_model->LoadAssets(dir.toStdString().c_str(), fileName.toStdString().c_str()))
+	{
 		_resourcePath = path;
+		_modelUpdated = true;
+		emit resourcePathChanged();
+	}
 	else
-		return;
+	{
+		stringList = _resourcePath.split(QString("/"));
+		listLength = stringList.length();
+		dir = _resourcePath.section(QString("/"), 0, listLength - 2) + QString("/");
+		fileName = stringList[listLength - 1].section(QString("."), 0, 0) + QString(".model3.json");
+		_model->LoadAssets(dir.toStdString().c_str(), fileName.toStdString().c_str());
+	}
 
-	emit resourcePathChanged();
+	if (window())
+		window()->update();
+}
+
+void LAppLive2DView::handleMousePressEvent(int button, double x, double y)
+{
+	if (_renderer == nullptr)
+		return;
+	if (static_cast<Qt::MouseButton>(button) != Qt::LeftButton)
+		return;
+	_capture = true;
+	_touchManager->TouchesBegan(static_cast<float>(x), static_cast<float>(y));
+	if (window())
+		window()->update();
+}
+
+void LAppLive2DView::handleMouseMoveEvent(int, double x, double y)
+{
+	if (!_capture)
+	{
+		return;
+	}
+	if (_renderer == NULL)
+	{
+		return;
+	}
+
+	float screenX = _deviceToScreen->TransformX(_touchManager->GetX());
+	float viewX = _viewMatrix->InvertTransformX(screenX);
+	float screenY = _deviceToScreen->TransformY(_touchManager->GetY());
+	float viewY = _viewMatrix->InvertTransformY(screenY);
+
+	_touchManager->TouchesMoved(static_cast<float>(x), static_cast<float>(y));
+
+	_model->SetDragging(viewX, viewY);
+	if (window())
+		window()->update();
+}
+
+void LAppLive2DView::handleMouseReleaseEvent(int button, double, double)
+{
+	if (_renderer == nullptr)
+		return;
+	if (static_cast<Qt::MouseButton>(button) != Qt::LeftButton)
+		return;
+	if (_capture)
+	{
+		_capture = false;
+		_model->SetDragging(0.0f, 0.0f);
+		{
+			float x = _deviceToScreen->TransformX(_touchManager->GetX());
+			float y = _deviceToScreen->TransformY(_touchManager->GetY());
+			if (DebugLogEnable)
+			{
+				LAppPal::PrintLog("[APP]touchesEnded x:%.2f y:%.2f", x, y);
+				LAppPal::PrintLog("[APP]tap point: {x:%.2f y:%.2f}", x, y);
+			}
+			if (_model->HitTest(HitAreaNameHead, x, y))
+			{
+				if (DebugLogEnable)
+				{
+					LAppPal::PrintLog("[APP]hit area: [%s]", HitAreaNameHead);
+				}
+				_model->SetRandomExpression();
+			}
+			else if (_model->HitTest(HitAreaNameBody, x, y))
+			{
+				if (DebugLogEnable)
+				{
+					LAppPal::PrintLog("[APP]hit area: [%s]", HitAreaNameBody);
+				}
+				_model->StartRandomMotion(MotionGroupTapBody, PriorityNormal, FinishedMotion);
+			}
+		}
+	}
+
 	if (window())
 		window()->update();
 }
@@ -218,6 +310,8 @@ void LAppLive2DView::geometryChanged(const QRectF& newGeometry, const QRectF& ol
 
 void LAppLive2DView::setupTextures()
 {
+	if (window() == nullptr)
+		return;
 	if (_model == nullptr || _model->IsInitialized() == false)
 		return;
 

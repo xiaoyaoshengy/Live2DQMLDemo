@@ -6,6 +6,7 @@
 
 class QQuickWindow;
 class LAppModel;
+class LAppTextureManager;
 
 /**
  * @brief 实现自定义渲染的类
@@ -36,6 +37,12 @@ public:
 	*/
 	void setModel(LAppModel* model);
 
+	void setTextureManager(LAppTextureManager* mgr);
+
+	void setModelUpdated(bool updated);
+
+	void setResourcePath(QString path);
+
 public slots:
 	/**
 	 * @brief 初始化渲染器的相关操作
@@ -51,4 +58,7 @@ private:
 	Csm::CubismViewMatrix* _viewMatrix;
 	LAppModel* _model;
 	QQuickWindow* _window;
+	bool _modelUpdated;
+	LAppTextureManager* _textureManager;
+	QString _resourcePath;
 };

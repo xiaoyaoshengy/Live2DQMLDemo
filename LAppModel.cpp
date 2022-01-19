@@ -66,18 +66,7 @@ LAppModel::LAppModel()
 
 LAppModel::~LAppModel()
 {
-    ReleaseMotions();
-    ReleaseExpressions();
-
-    if (_modelSetting != nullptr)
-    {
-        for (csmInt32 i = 0; i < _modelSetting->GetMotionGroupCount(); i++)
-        {
-            const csmChar* group = _modelSetting->GetMotionGroupName(i);
-            ReleaseMotionGroup(group);
-        }
-        delete(_modelSetting);
-    }
+    ReleaseAssets();
 }
 
 bool LAppModel::LoadAssets(const csmChar* dir, const csmChar* fileName)
@@ -567,6 +556,30 @@ csmBool LAppModel::HitTest(const csmChar* hitAreaName, csmFloat32 x, csmFloat32 
         }
     }
     return false; // 存在しない場合はfalse
+}
+
+void LAppModel::ReleaseAssets()
+{
+    _updating = true;
+    
+    if (_initialized)
+    {
+        ReleaseMotions();
+        ReleaseExpressions();
+
+        if (_modelSetting != nullptr)
+        {
+            for (csmInt32 i = 0; i < _modelSetting->GetMotionGroupCount(); i++)
+            {
+                const csmChar* group = _modelSetting->GetMotionGroupName(i);
+                ReleaseMotionGroup(group);
+            }
+            delete(_modelSetting);
+        }
+    }
+
+    _initialized = false;
+    _updating = false;
 }
 
 void LAppModel::DoDraw()

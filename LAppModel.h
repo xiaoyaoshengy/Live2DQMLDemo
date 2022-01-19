@@ -109,6 +109,7 @@ public:
     virtual Csm::csmBool HitTest(const Csm::csmChar* hitAreaName, Csm::csmFloat32 x, Csm::csmFloat32 y);
 
     Csm::ICubismModelSetting* GetModelSetting() const { return _modelSetting; }
+    void ReleaseAssets();
 
 protected:
     /**

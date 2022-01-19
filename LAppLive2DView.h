@@ -57,6 +57,30 @@ public:
 	*/
 	QString resourcePath() const { return _resourcePath; }
 
+	/**
+	 * @brief 处理鼠标按下事件，可在QML中使用该函数
+	 * @param button	鼠标按下的按键
+	 * @param x			鼠标按下时的位置X
+	 * @param y			鼠标按下时的位置Y
+	*/
+	Q_INVOKABLE void handleMousePressEvent(int button, double x, double y);
+
+	/**
+	 * @brief 处理鼠标移动事件，可在QML中使用该函数
+	 * @param button	鼠标移动时的按键
+	 * @param x			鼠标移动时的位置X
+	 * @param y			鼠标移动时的位置Y
+	*/
+	Q_INVOKABLE void handleMouseMoveEvent(int button, double x, double y);
+
+	/**
+	 * @brief 处理鼠标释放事件，可在QML中使用该函数
+	 * @param button	鼠标释放时的按键
+	 * @param x			鼠标释放时的位置X
+	 * @param y			鼠标释放时的位置Y
+	*/
+	Q_INVOKABLE void handleMouseReleaseEvent(int button, double x, double y);
+
 signals:
 	void tChanged();
 	void resourcePathChanged();
@@ -130,6 +154,7 @@ private:
 
 	qreal _t;										///< 用于存储属性t的值
 	bool _capture;									///< 表示窗体是否被捕获的状态
+	bool _modelUpdated;
 	QString _resourcePath;							///< 用于存储属性resourcePath的值
 	LAppRenderer* _renderer;						///< 渲染器
 	LAppModel* _model;								///< 模型相关信息和操作的对象
