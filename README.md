@@ -10,4 +10,4 @@
 * Qt版本： 5.15.2
 * 编译器版本：MSVC 2019 64-bit
 * 开发工具：Visual Studio 2022
-* 本工程需在**Debug**模式下的 **属性页** -> **链接器** -> **输入** -> **附加依赖项** 中添加```CubismSDK/Core/lib/Live2DCubismCore_MDd.lib```，并在**Debug**模式中运行
+* 本工程需在**Debug**模式下的 **属性页** -> **链接器** -> **输入** -> **附加依赖项** 中添加```CubismSDK/Core/lib/Live2DCubismCore_MDd.lib```，并在**Debug**模式中运行。**Release**模式未进行测试。
