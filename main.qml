@@ -31,7 +31,7 @@ Window {
 	Live2DView {
 		id: live2DView;
 		anchors.fill: parent;
-		resourcePath: "D:/CubismSdkForNative-4-r.2/Samples/Resources/Haru/Haru.model3.json";
+        resourcePath: "E:/xiaoyaosheny/live2d/live2d-model-master/aidang_2/aidang_2.model3.json";
 
 		SequentialAnimation on t {
 			NumberAnimation { to: 1; duration: 1000; }
@@ -80,21 +80,21 @@ Window {
 					this.clickPosX = mouse.x;
 					this.clickPosY = mouse.y;
 
-					if(mouse.x < 5 && mouse.y < 5) {
+					if(mouse.x < 10 && mouse.y < 10) {
 						this.mousePosType = CustomEnum.MousePositionType.LeftTop;
-					} else if(mouse.x < 5 && mouse.y > 5 && mouse.y < root.height - 5) {
+					} else if(mouse.x < 10 && mouse.y > 10 && mouse.y < root.height - 10) {
 						this.mousePosType = CustomEnum.MousePositionType.Left;
-					} else if(mouse.x < 5 && mouse.y > root.height - 5) {
+					} else if(mouse.x < 10 && mouse.y > root.height - 10) {
 						this.mousePosType = CustomEnum.MousePositionType.LeftBottom;
-					} else if(mouse.x > 5 && mouse.x < root.width - 5 && mouse.y < 5) {
+					} else if(mouse.x > 10 && mouse.x < root.width - 10 && mouse.y < 10) {
 						this.mousePosType = CustomEnum.MousePositionType.Top;
-					} else if(mouse.x > 5 && mouse.x < root.width - 5 && mouse.y > root.height - 5) {
+					} else if(mouse.x > 10 && mouse.x < root.width - 10 && mouse.y > root.height - 10) {
 						this.mousePosType = CustomEnum.MousePositionType.Bottom;
-					} else if(mouse.x > root.width - 5 && mouse.y < 5) {
+					} else if(mouse.x > root.width - 10 && mouse.y < 10) {
 						this.mousePosType = CustomEnum.MousePositionType.RightTop;
-					} else if(mouse.x > root.width - 5 && mouse.y > 5 && mouse.y < root.height - 5) {
+					} else if(mouse.x > root.width - 10 && mouse.y > 10 && mouse.y < root.height - 10) {
 						this.mousePosType = CustomEnum.MousePositionType.Right;
-					} else if(mouse.x > root.width - 5 && mouse.y > root.height - 5) {
+					} else if(mouse.x > root.width - 10 && mouse.y > root.height - 10) {
 						this.mousePosType = CustomEnum.MousePositionType.RightBottom;
 					} else {
 						this.mousePosType = CustomEnum.MousePositionType.Center;

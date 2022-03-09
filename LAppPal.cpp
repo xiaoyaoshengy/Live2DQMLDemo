@@ -2,7 +2,7 @@
 #include <stdarg.h>
 #include <sys/stat.h>
 #include <fstream>
-#include "CubismSDK/Framework/Model/CubismMoc.hpp"
+#include "Framework/Model/CubismMoc.hpp"
 #include "LAppDefine.h"
 #include <QDebug>
 #include <QString>

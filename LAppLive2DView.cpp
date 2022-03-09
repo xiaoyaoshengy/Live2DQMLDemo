@@ -8,8 +8,7 @@
 #include "TouchManager.h"
 #include "LAppDefine.h"
 #include <math.h>
-#include "LAppTextureManager.h"
-#include "CubismSDK/Framework/Rendering/OpenGL/CubismRenderer_OpenGLES2.hpp"
+#include <QOpenGLFunctions>
 
 using namespace Csm;
 using namespace LAppDefine;
@@ -35,10 +34,9 @@ LAppLive2DView::LAppLive2DView(QQuickItem* parent)
 	: QQuickItem(parent)
 	, _t(0)
 	, _capture(false)
-	, _modelUpdated(false)
+	, _modelUpdated(true)
 	, _renderer(nullptr)
 	, _cubismOption()
-	, _textureManager(nullptr)
 {
 	_resourcePath = QCoreApplication::applicationDirPath() + QString("/Resources/Haru/Haru.model3.json");
 	
@@ -60,7 +58,6 @@ void LAppLive2DView::handleWindowChanged(QQuickWindow* win)
 {
 	if (win)
 	{
-		connect(win, &QQuickWindow::sceneGraphInitialized, this, &LAppLive2DView::setupTextures, Qt::DirectConnection);
 		connect(win, &QQuickWindow::beforeSynchronizing, this, &LAppLive2DView::sync, Qt::DirectConnection);
 		connect(win, &QQuickWindow::sceneGraphInvalidated, this, &LAppLive2DView::cleanup, Qt::DirectConnection);
 	}
@@ -76,10 +73,8 @@ void LAppLive2DView::sync()
 	}
 	_renderer->setWindow(window());
 	_renderer->setViewMatrix(_viewMatrix);
-	_renderer->setModel(_model);
 	_renderer->setModelUpdated(_modelUpdated);
 	_modelUpdated = false;
-	_renderer->setTextureManager(_textureManager);
 	_renderer->setResourcePath(_resourcePath);
 }
 
@@ -113,25 +108,9 @@ void LAppLive2DView::setResourcePath(QString path)
 	if (path.endsWith(".model3.json") == false)
 		return;
 
-	_model->ReleaseAssets();
-	QStringList stringList = path.split(QString("/"));
-	int listLength = stringList.length();
-	QString dir = path.section(QString("/"), 0, listLength - 2) + QString("/");
-	QString fileName = stringList[listLength - 1].section(QString("."), 0, 0) + QString(".model3.json");
-	if (_model->LoadAssets(dir.toStdString().c_str(), fileName.toStdString().c_str()))
-	{
-		_resourcePath = path;
-		_modelUpdated = true;
-		emit resourcePathChanged();
-	}
-	else
-	{
-		stringList = _resourcePath.split(QString("/"));
-		listLength = stringList.length();
-		dir = _resourcePath.section(QString("/"), 0, listLength - 2) + QString("/");
-		fileName = stringList[listLength - 1].section(QString("."), 0, 0) + QString(".model3.json");
-		_model->LoadAssets(dir.toStdString().c_str(), fileName.toStdString().c_str());
-	}
+	_resourcePath = path;
+	emit resourcePathChanged();
+	_modelUpdated = true;
 
 	if (window())
 		window()->update();
@@ -167,7 +146,7 @@ void LAppLive2DView::handleMouseMoveEvent(int, double x, double y)
 
 	_touchManager->TouchesMoved(static_cast<float>(x), static_cast<float>(y));
 
-	_model->SetDragging(viewX, viewY);
+	_renderer->SetDragging(viewX, viewY);
 	if (window())
 		window()->update();
 }
@@ -181,7 +160,7 @@ void LAppLive2DView::handleMouseReleaseEvent(int button, double, double)
 	if (_capture)
 	{
 		_capture = false;
-		_model->SetDragging(0.0f, 0.0f);
+		_renderer->SetDragging(0.0f, 0.0f);
 		{
 			float x = _deviceToScreen->TransformX(_touchManager->GetX());
 			float y = _deviceToScreen->TransformY(_touchManager->GetY());
@@ -190,21 +169,21 @@ void LAppLive2DView::handleMouseReleaseEvent(int button, double, double)
 				LAppPal::PrintLog("[APP]touchesEnded x:%.2f y:%.2f", x, y);
 				LAppPal::PrintLog("[APP]tap point: {x:%.2f y:%.2f}", x, y);
 			}
-			if (_model->HitTest(HitAreaNameHead, x, y))
+			if (_renderer->HitTest(HitAreaNameHead, x, y))
 			{
 				if (DebugLogEnable)
 				{
 					LAppPal::PrintLog("[APP]hit area: [%s]", HitAreaNameHead);
 				}
-				_model->SetRandomExpression();
+				_renderer->SetRandomExpression();
 			}
-			else if (_model->HitTest(HitAreaNameBody, x, y))
+			else if (_renderer->HitTest(HitAreaNameBody, x, y))
 			{
 				if (DebugLogEnable)
 				{
 					LAppPal::PrintLog("[APP]hit area: [%s]", HitAreaNameBody);
 				}
-				_model->StartRandomMotion(MotionGroupTapBody, PriorityNormal, FinishedMotion);
+				_renderer->StartRandomMotion(MotionGroupTapBody, PriorityNormal, FinishedMotion);
 			}
 		}
 	}
@@ -215,82 +194,9 @@ void LAppLive2DView::handleMouseReleaseEvent(int button, double, double)
 
 void LAppLive2DView::cleanup()
 {
-	delete _model;
-	_model = nullptr;
 	delete _renderer;
 	_renderer = nullptr;
-	delete _textureManager;
-	_textureManager = nullptr;
 	CubismFramework::Dispose();
-}
-
-void LAppLive2DView::mousePressEvent(QMouseEvent* ev)
-{
-	if (_renderer == nullptr)
-		return;
-	if (ev->button() != Qt::LeftButton)
-		return;
-	_capture = true;
-	_touchManager->TouchesBegan(ev->x(), ev->y());
-}
-
-void LAppLive2DView::mouseMoveEvent(QMouseEvent* ev)
-{
-	if (!_capture)
-	{
-		return;
-	}
-	if (_renderer == NULL)
-	{
-		return;
-	}
-
-	float screenX = _deviceToScreen->TransformX(_touchManager->GetX());
-	float viewX = _viewMatrix->InvertTransformX(screenX);
-	float screenY = _deviceToScreen->TransformY(_touchManager->GetY());
-	float viewY = _viewMatrix->InvertTransformY(screenY);
-
-	_touchManager->TouchesMoved(ev->x(), ev->y());
-
-	_model->SetDragging(viewX, viewY);
-}
-
-void LAppLive2DView::mouseReleaseEvent(QMouseEvent* ev)
-{
-	if (_renderer == nullptr)
-		return;
-	if (ev->button() != Qt::LeftButton)
-		return;
-	if (_capture)
-	{
-		_capture = false;
-		_model->SetDragging(0.0f, 0.0f);
-		{
-			float x = _deviceToScreen->TransformX(_touchManager->GetX());
-			float y = _deviceToScreen->TransformY(_touchManager->GetY());
-			if (DebugLogEnable)
-			{
-				LAppPal::PrintLog("[APP]touchesEnded x:%.2f y:%.2f", x, y);
-				LAppPal::PrintLog("[APP]tap point: {x:%.2f y:%.2f}", x, y);
-			}
-			if (_model->HitTest(HitAreaNameHead, x, y))
-			{
-				if (DebugLogEnable)
-				{
-					LAppPal::PrintLog("[APP]hit area: [%s]", HitAreaNameHead);
-				}
-				_model->SetRandomExpression();
-			}
-			else if (_model->HitTest(HitAreaNameBody, x, y))
-			{
-				if (DebugLogEnable)
-				{
-					LAppPal::PrintLog("[APP]hit area: [%s]", HitAreaNameBody);
-				}
-				_model->StartRandomMotion(MotionGroupTapBody, PriorityNormal, FinishedMotion);
-			}
-		}
-	}
 }
 
 void LAppLive2DView::geometryChanged(const QRectF& newGeometry, const QRectF& oldGeometry)
@@ -306,49 +212,6 @@ void LAppLive2DView::geometryChanged(const QRectF& newGeometry, const QRectF& ol
 			window()->openglContext()->functions()->glViewport(0, 0, w, h);
 		}
 	}
-}
-
-void LAppLive2DView::setupTextures()
-{
-	if (window() == nullptr)
-		return;
-	if (_model == nullptr || _model->IsInitialized() == false)
-		return;
-
-	_model->CreateRenderer(window()->openglContext());
-
-	if (_textureManager == nullptr)
-		_textureManager = new LAppTextureManager;
-	_textureManager->SetWindow(window());
-	ICubismModelSetting* modelSetting = _model->GetModelSetting();
-	for (csmInt32 modelTextureNumber = 0; modelTextureNumber < modelSetting->GetTextureCount(); modelTextureNumber++)
-	{
-		// テクスチャ名が空文字だった場合はロード・バインド処理をスキップ
-		if (strcmp(modelSetting->GetTextureFileName(modelTextureNumber), "") == 0)
-		{
-			continue;
-		}
-
-		//OpenGLのテクスチャユニットにテクスチャをロードする
-		QString texturePath = modelSetting->GetTextureFileName(modelTextureNumber);
-		int listLength = _resourcePath.split(QString("/")).length();
-		QString modelHomeDir = _resourcePath.section(QString("/"), 0, listLength - 2);
-		texturePath = modelHomeDir + QString("/") + texturePath;
-
-		LAppTextureManager::TextureInfo* texture = _textureManager->CreateTextureFromPngFile(texturePath.toStdString());
-		if (texture == NULL)
-			continue;
-		const csmInt32 glTextueNumber = texture->id;
-
-		//OpenGL
-		_model->GetRenderer<Rendering::CubismRenderer_OpenGLES2>()->BindTexture(modelTextureNumber, glTextueNumber);
-	}
-
-#ifdef PREMULTIPLIED_ALPHA_ENABLE
-	_model->GetRenderer<Rendering::CubismRenderer_OpenGLES2>()->IsPremultipliedAlpha(true);
-#else
-	_model->GetRenderer<Rendering::CubismRenderer_OpenGLES2>()->IsPremultipliedAlpha(false);
-#endif
 }
 
 void LAppLive2DView::releaseResources()
@@ -407,14 +270,6 @@ void LAppLive2DView::InitializeCubism()
 	CubismFramework::StartUp(&_cubismAllocator, &_cubismOption);
 
 	CubismFramework::Initialize();
-
-	_model = new LAppModel;
-	QStringList stringList = _resourcePath.split(QString("/"));
-	int listLength = stringList.length();
-	QString dir = _resourcePath.section(QString("/"), 0, listLength - 2) + QString("/");
-	QString fileName = stringList[listLength - 1].section(QString("."), 0, 0) + QString(".model3.json");
-	if (_model->LoadAssets(dir.toStdString().c_str(), fileName.toStdString().c_str()) == false)
-		LAppPal::PrintLog("Model load error: %s", _resourcePath.toStdString().c_str());
 
 	LAppPal::UpdateTime();
 }

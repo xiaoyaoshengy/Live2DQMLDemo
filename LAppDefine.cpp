@@ -1,5 +1,5 @@
 #include "LAppDefine.h"
-#include "CubismSDK/Framework/CubismFramework.hpp"
+#include "Framework/CubismFramework.hpp"
 
 namespace LAppDefine
 {

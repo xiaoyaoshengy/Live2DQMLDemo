@@ -2,15 +2,16 @@
 
 #include <QObject>
 #include "LAppAllocator.h"
-#include "CubismSDK/Framework/Math/CubismViewMatrix.hpp"
+#include "Framework/Math/CubismViewMatrix.hpp"
+#include "Framework/Motion/ACubismMotion.hpp"
+#include <QAudio>
+#include <QFile>
 
 class QQuickWindow;
 class LAppModel;
 class LAppTextureManager;
+class QAudioOutput;
 
-/**
- * @brief 实现自定义渲染的类
-*/
 class LAppRenderer : public QObject
 {
 	Q_OBJECT
@@ -19,40 +20,30 @@ public:
 	LAppRenderer();
 	~LAppRenderer();
 
-	/**
-	 * @brief 从GUI线程传递来的渲染输出的QQuickWindow窗体
-	 * @param window 
-	*/
 	void setWindow(QQuickWindow* window);
 
-	/**
-	 * @brief 设置渲染过程中使用到的ViewMatrix
-	 * @param viewMat 
-	*/
 	void setViewMatrix(Csm::CubismViewMatrix* viewMat);
-
-	/**
-	 * @brief 设置要渲染的模型
-	 * @param model 
-	*/
-	void setModel(LAppModel* model);
-
-	void setTextureManager(LAppTextureManager* mgr);
 
 	void setModelUpdated(bool updated);
 
 	void setResourcePath(QString path);
 
+	void SetDragging(float px, float py);
+
+	bool HitTest(const char* hitAreaName, float px, float py);
+
+	void SetRandomExpression();
+
+	void StartRandomMotion(const char* group, int priority, Csm::ACubismMotion::FinishedMotionCallback onFinishedMotionCallback);
+
+	void PlayVoice(QString voiceFilePath);
+
 public slots:
-	/**
-	 * @brief 初始化渲染器的相关操作
-	*/
 	void init();
 
-	/**
-	 * @brief 主要渲染过程
-	*/
 	void paint();
+
+	void handleVoiceStateChanged(QAudio::State state);
 
 private:
 	Csm::CubismViewMatrix* _viewMatrix;
@@ -61,4 +52,7 @@ private:
 	bool _modelUpdated;
 	LAppTextureManager* _textureManager;
 	QString _resourcePath;
+	QString _oldPath;
+	QFile _audioFile;
+	QAudioOutput* _audioOutput;
 };

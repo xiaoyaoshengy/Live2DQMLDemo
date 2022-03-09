@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CubismSDK/Framework/CubismFramework.hpp"
+#include "Framework/CubismFramework.hpp"
 
 namespace LAppDefine
 {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "CubismSDK/Framework/Type/csmVector.hpp"
+#include "Framework/Type/csmVector.hpp"
 #include <QOpenGLFunctions>
 
 class QQuickWindow;

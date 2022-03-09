@@ -8,18 +8,17 @@
 #include "LAppModel.h"
 #include <fstream>
 #include <vector>
-#include "CubismSDK/Framework/CubismModelSettingJson.hpp"
-#include "CubismSDK/Framework/Motion/CubismMotion.hpp"
-#include "CubismSDK/Framework/Physics/CubismPhysics.hpp"
-#include "CubismSDK/Framework/CubismDefaultParameterId.hpp"
-#include "CubismSDK/Framework/Utils/CubismString.hpp"
-#include "CubismSDK/Framework/Id/CubismIdManager.hpp"
-#include "CubismSDK/Framework/Motion/CubismMotionQueueEntry.hpp"
+#include "Framework/CubismModelSettingJson.hpp"
+#include "Framework/Motion/CubismMotion.hpp"
+#include "Framework/Physics/CubismPhysics.hpp"
+#include "Framework/CubismDefaultParameterId.hpp"
+#include "Framework/Utils/CubismString.hpp"
+#include "Framework/Id/CubismIdManager.hpp"
+#include "Framework/Motion/CubismMotionQueueEntry.hpp"
 #include "LAppDefine.h"
 #include "LAppPal.h"
-#include "CubismSDK/Framework/Rendering/OpenGL/CubismRenderer_OpenGLES2.hpp"
-#include <QAudioOutput>
-#include <QAudioDeviceInfo>
+#include "Framework/Rendering/OpenGL/CubismRenderer_OpenGLES2.hpp"
+#include "LAppRenderer.h"
 
 using namespace Live2D::Cubism::Framework;
 using namespace Live2D::Cubism::Framework::DefaultParameterId;
@@ -45,11 +44,11 @@ namespace {
     }
 }
 
-LAppModel::LAppModel()
+LAppModel::LAppModel(LAppRenderer* renderer)
     : CubismUserModel()
     , _modelSetting(NULL)
     , _userTimeSeconds(0.0f)
-    , _audioOutput(nullptr)
+    , _renderer(renderer)
 {
     if (DebugLogEnable)
     {
@@ -92,6 +91,20 @@ bool LAppModel::LoadAssets(const csmChar* dir, const csmChar* fileName)
     return SetupModel(setting);
 }
 
+//bool LAppModel::LoadAssets(QString filePath)
+//{
+//    QStringList stringList = filePath.split(QStringLiteral("/"));
+//    int listLength = stringList.length();
+//    _modelHomeDir = filePath.section(QStringLiteral("/"), 0, listLength - 2) + QStringLiteral("/");
+//
+//    if (_debugMode)
+//        LAppPal::PrintLog("[APP]load model setting: %s", filePath);
+//
+//    CubismModel3JsonParser* setting = new CubismModel3JsonParser(filePath);
+//    if (setting->IsAvailable() == false)
+//        return false;
+//    return SetupModel(setting);
+//}
 
 bool LAppModel::SetupModel(ICubismModelSetting* setting)
 {
@@ -244,6 +257,49 @@ bool LAppModel::SetupModel(ICubismModelSetting* setting)
 
     return true;
 }
+
+//bool LAppModel::SetupModel(CubismModel3JsonParser* setting)
+//{
+//    _updating = true;
+//    _initialized = false;
+//
+//    _modelSetting = setting;
+//
+//    // Cubism Model
+//    if (_modelSetting->GetModelFileName().isEmpty() == false)
+//    {
+//        csmString path = (_modelHomeDir + _modelSetting->GetModelFileName()).toStdString().c_str();
+//
+//        if (_debugMode)
+//        {
+//            LAppPal::PrintLog("[APP]create model: %s", setting->GetModelFileName());
+//        }
+//
+//        csmSizeInt size;
+//        csmByte* buffer = CreateBuffer(path.GetRawString(), &size);
+//        if (buffer == NULL)
+//            return false;
+//        LoadModel(buffer, size);
+//        DeleteBuffer(buffer, path.GetRawString());
+//    }
+//
+//    // Expression
+//    if (_modelSetting->GetExpressionCount() > 0)
+//    {
+//        const csmInt32 count = _modelSetting->GetExpressionCount();
+//        for (csmInt32 i = 0; i < count; i++)
+//        {
+//            QString expFilePath = _modelHomeDir + _modelSetting->GetExpressionFileName(i);
+//            ACubismMotion* motion = LoadExpression(expFilePath);
+//        }
+//    }
+//
+//    // Physics
+//    if (_modelSetting->GetPhysicsFileName().isEmpty() != false)
+//    {
+//
+//    }
+//}
 
 void LAppModel::PreloadMotionGroup(const csmChar* group)
 {
@@ -500,23 +556,7 @@ CubismMotionQueueEntryHandle LAppModel::StartMotion(const csmChar* group, csmInt
         path = _modelHomeDir + path;
         if (_wavFileHandler.Start(path))
         {
-            if (_audioFile.isOpen())
-                _audioFile.close();
-            _audioFile.setFileName(QString::fromLocal8Bit(path.GetRawString()));
-            if (!_audioFile.open(QIODevice::ReadOnly))
-            {
-                LAppPal::PrintLog("sound file open error: %s", path.GetRawString());
-            }
-            else
-            {
-                if (_audioOutput == nullptr)
-                {
-                    _audioOutput = new QAudioOutput(QAudioDeviceInfo::defaultOutputDevice().preferredFormat(), this);
-                    connect(_audioOutput, &QAudioOutput::stateChanged, this, &LAppModel::handleVoiceStateChanged);
-                }
-                else _audioOutput->stop();
-                _audioOutput->start(&_audioFile);
-            }
+            _renderer->PlayVoice(QString::fromLocal8Bit(path.GetRawString()));
         }
     }
 
@@ -635,42 +675,4 @@ void LAppModel::SetRandomExpression()
 void LAppModel::MotionEventFired(const csmString& eventValue)
 {
     CubismLogInfo("%s is fired on LAppModel!!", eventValue.GetRawString());
-}
-
-void LAppModel::handleVoiceStateChanged(QAudio::State newState)
-{
-    switch (newState)
-    {
-    case QAudio::IdleState:
-        _audioOutput->stop();
-        _audioFile.close();
-        delete _audioOutput;
-        _audioOutput = nullptr;
-        break;
-    case QAudio::StoppedState:
-        if (_audioOutput)
-        {
-            if (_audioOutput->error() != QAudio::NoError)
-            {
-                switch (_audioOutput->error())
-                {
-                case QAudio::OpenError:
-                    LAppPal::PrintLog("An error occurred opening the audio device.");
-                    break;
-                case QAudio::IOError:
-                    LAppPal::PrintLog("An error occurred during read/write of audio device.");
-                    break;
-                case QAudio::UnderrunError:
-                    LAppPal::PrintLog("Audio data is not being fed to the audio device at a fast enough rate.");
-                    break;
-                case QAudio::FatalError:
-                    LAppPal::PrintLog("A non-recoverable error has occerred, the audio device is not usable at this time.");
-                    break;
-                }
-            }
-            delete _audioOutput;
-            _audioOutput = nullptr;
-        }        
-        break;
-    }
 }

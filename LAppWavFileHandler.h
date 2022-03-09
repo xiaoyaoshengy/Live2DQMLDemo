@@ -1,7 +1,7 @@
 #pragma once
 
-#include "CubismSDK/Framework/CubismFramework.hpp"
-#include "CubismSDK/Framework/Utils/CubismString.hpp"
+#include "Framework/CubismFramework.hpp"
+#include "Framework/Utils/CubismString.hpp"
 
 class LAppWavFileHandler
 {

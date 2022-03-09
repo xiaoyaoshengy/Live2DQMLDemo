@@ -22,6 +22,8 @@ void* LAppAllocator::AllocateAligned(const Csm::csmSizeType size, const Csm::csm
 
     allocation = Allocate(size + static_cast<csmUint32>(offset));
 
+    if (allocation == NULL) return NULL;
+
     alignedAddress = reinterpret_cast<size_t>(allocation) + sizeof(void*);
 
     shift = alignedAddress % alignment;

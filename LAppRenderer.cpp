@@ -5,7 +5,8 @@
 #include <QOpenGLFunctions>
 #include "LAppModel.h"
 #include "LAppTextureManager.h"
-#include "CubismSDK/Framework/Rendering/OpenGL/CubismRenderer_OpenGLES2.hpp"
+#include "Framework/Rendering/OpenGL/CubismRenderer_OpenGLES2.hpp"
+#include <QAudioOutput>
 
 using namespace LAppDefine;
 using namespace Csm;
@@ -14,11 +15,17 @@ LAppRenderer::LAppRenderer()
 	: _viewMatrix(nullptr)
 	, _model(nullptr)
 	, _modelUpdated(false)
+	, _textureManager(nullptr)
 {
+	_audioOutput = new QAudioOutput(QAudioDeviceInfo::defaultOutputDevice().preferredFormat(), this);
+	connect(_audioOutput, &QAudioOutput::stateChanged, this, &LAppRenderer::handleVoiceStateChanged);
 }
 
 LAppRenderer::~LAppRenderer()
 {
+	if (_audioOutput)
+		delete _audioOutput;
+	_audioOutput = nullptr;
 }
 
 void LAppRenderer::setWindow(QQuickWindow* window)
@@ -31,16 +38,6 @@ void LAppRenderer::setViewMatrix(CubismViewMatrix* viewMat)
 	_viewMatrix = viewMat;
 }
 
-void LAppRenderer::setModel(LAppModel* model)
-{
-	_model = model;
-}
-
-void LAppRenderer::setTextureManager(LAppTextureManager* mgr)
-{
-	_textureManager = mgr;
-}
-
 void LAppRenderer::setModelUpdated(bool updated)
 {
 	_modelUpdated = updated;
@@ -48,11 +45,60 @@ void LAppRenderer::setModelUpdated(bool updated)
 
 void LAppRenderer::setResourcePath(QString path)
 {
-	_resourcePath = path;
+	if (path == _resourcePath)
+		_modelUpdated = false;
+	else
+	{
+		_oldPath = _resourcePath;
+		_resourcePath = path;
+	}
+}
+
+void LAppRenderer::SetDragging(float px, float py)
+{
+	if (_model)
+		_model->SetDragging(px, py);
+}
+
+bool LAppRenderer::HitTest(const char* hitAreaName, float px, float py)
+{
+	if (_model)
+		return _model->HitTest(hitAreaName, px, py);
+	return false;
+}
+
+void LAppRenderer::SetRandomExpression()
+{
+	if (_model)
+		_model->SetRandomExpression();
+}
+
+void LAppRenderer::StartRandomMotion(const char* group, int priority, ACubismMotion::FinishedMotionCallback onFinishedMotionCallback)
+{
+	_model->StartRandomMotion(group, priority, onFinishedMotionCallback);
+}
+
+void LAppRenderer::PlayVoice(QString voiceFilePath)
+{
+	if (_audioFile.isOpen())
+		_audioFile.close();
+	_audioFile.setFileName(voiceFilePath);
+	if (!_audioFile.open(QIODevice::ReadOnly))
+	{
+		LAppPal::PrintLog("sound file open error: %s", voiceFilePath.toStdString().c_str());
+	}
+	else
+	{
+		_audioOutput->stop();
+		_audioOutput->start(&_audioFile);
+	}
 }
 
 void LAppRenderer::paint()
 {
+	if (_window == nullptr || _model == nullptr)
+		return;
+
 	LAppPal::UpdateTime();
 
 	QOpenGLFunctions* f = _window->openglContext()->functions();
@@ -104,11 +150,31 @@ void LAppRenderer::init()
 	{
 		if (_window == nullptr)
 			return;
-		if (_model == nullptr || _model->IsInitialized() == false)
-			return;
 
-		_model->GetRenderer<Rendering::CubismRenderer_OpenGLES2>()->Initialize(_model->GetModel());
+		if (_model)
+		{
+			delete _model;
+		}
+		_model = new LAppModel(this);
+		
+		QStringList stringList = _resourcePath.split(QStringLiteral("/"));
+		int listLength = stringList.length();
+		QString dir = _resourcePath.section(QStringLiteral("/"), 0, listLength - 2) + QStringLiteral("/");
+		QString fileName = stringList[listLength - 1];
+		if (!_model->LoadAssets(dir.toStdString().c_str(), fileName.toStdString().c_str()))
+		{
+			stringList = _oldPath.split(QStringLiteral("/"));
+			listLength = stringList.length();
+			dir = _oldPath.section(QStringLiteral("/"), 0, listLength - 2) + QStringLiteral("/");
+			fileName = stringList[listLength - 1];
+			_model->LoadAssets(dir.toStdString().c_str(), fileName.toStdString().c_str());
+		}
 
+		_model->CreateRenderer(_window->openglContext());
+
+		if (_textureManager == nullptr)
+			_textureManager = new LAppTextureManager;
+		_textureManager->SetWindow(_window);
 		ICubismModelSetting* modelSetting = _model->GetModelSetting();
 		for (csmInt32 modelTextureNumber = 0; modelTextureNumber < modelSetting->GetTextureCount(); modelTextureNumber++)
 		{
@@ -138,5 +204,41 @@ void LAppRenderer::init()
 #else
 		_model->GetRenderer<Rendering::CubismRenderer_OpenGLES2>()->IsPremultipliedAlpha(false);
 #endif
+
+		_modelUpdated = false;
+	}
+}
+
+void LAppRenderer::handleVoiceStateChanged(QAudio::State newState)
+{
+	switch (newState)
+	{
+	case QAudio::IdleState:
+		_audioOutput->stop();
+		_audioFile.close();
+		break;
+	case QAudio::StoppedState:
+		if (_audioOutput)
+		{
+			if (_audioOutput->error() != QAudio::NoError)
+			{
+				switch (_audioOutput->error())
+				{
+				case QAudio::OpenError:
+					LAppPal::PrintLog("An error occurred opening the audio device.");
+					break;
+				case QAudio::IOError:
+					LAppPal::PrintLog("An error occurred during read/write of audio device.");
+					break;
+				case QAudio::UnderrunError:
+					LAppPal::PrintLog("Audio data is not being fed to the audio device at a fast enough rate.");
+					break;
+				case QAudio::FatalError:
+					LAppPal::PrintLog("A non-recoverable error has occerred, the audio device is not usable at this time.");
+					break;
+				}
+			}
+		}
+		break;
 	}
 }

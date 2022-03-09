@@ -1,7 +1,7 @@
 #pragma once
 
-#include "CubismSDK/Framework/CubismFramework.hpp"
-#include "CubismSDK/Framework/ICubismAllocator.hpp"
+#include "Framework/CubismFramework.hpp"
+#include "Framework/ICubismAllocator.hpp"
 
 class LAppAllocator : public Csm::ICubismAllocator
 {
