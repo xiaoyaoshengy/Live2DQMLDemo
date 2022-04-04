@@ -7,7 +7,7 @@
 * Qt版本： 5.15.2
 * 编译器版本：MSVC 2019 64-bit
 * 开发工具：Visual Studio 2022
-* 本工程需在**Debug**模式下的 **属性页** -> **链接器** -> **输入** -> **附加依赖项** 中添加```CubismSDK/Core/lib/Live2DCubismCore_MDd.lib```，并在**Debug**模式中运行。**Release**模式未进行测试。
+* 本工程需在**Debug**模式下的 **属性页** -> **链接器** -> **输入** -> **附加依赖项** 中添加```Core/lib/Live2DCubismCore_MDd.lib```，并在**Debug**模式中运行。**Release**模式未进行测试。
 ### 演示视频
 [https://www.bilibili.com/video/BV1mL4y1u75V?spm_id_from=333.999.0.0](https://www.bilibili.com/video/BV1mL4y1u75V?spm_id_from=333.999.0.0)
 
@@ -21,6 +21,6 @@
 * Qt Version: 5.15.2
 * Compiler Version: MSVC 2019 64-bit
 * IDE: Visual Studio 2019
-* Other Settings: **Debug** Mode, **Porperty Page** -> **Linker** -> **Input** -> **Additional Dependencies**: Add ```CubismSDK/Core/lib/Live2DCubismCore_MDd.lib```.
+* Other Settings: **Debug** Mode, **Porperty Page** -> **Linker** -> **Input** -> **Additional Dependencies**: Add ```Core/lib/Live2DCubismCore_MDd.lib```.
 ### Presentation Video
 [https://www.bilibili.com/video/BV1mL4y1u75V?spm_id_from=333.999.0.0](https://www.bilibili.com/video/BV1mL4y1u75V?spm_id_from=333.999.0.0)
